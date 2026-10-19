@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🎃 萬聖節貓咪輪廓對位挑戰</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background: radial-gradient(circle at 50% 35%, #2a1b4e 0%, #160d29 65%, #0b0614 100%);
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        /* 萬聖節簡約背景點綴（低干擾） */
+        .halloween-glow {
+            box-shadow: 0 0 25px rgba(255, 117, 24, 0.25), inset 0 0 20px rgba(139, 92, 246, 0.15);
+        }
+        .btn-pumpkin {
+            background: linear-gradient(135deg, #ff8c24 0%, #ea580c 100%);
+            box-shadow: 0 6px 0 #9a3412, 0 10px 20px rgba(234, 88, 12, 0.4);
+            transition: all 0.1s ease;
+        }
+        .btn-pumpkin:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #9a3412, 0 4px 10px rgba(234, 88, 12, 0.3);
+        }
+        .btn-purple {
+            background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+            box-shadow: 0 5px 0 #4c1d95, 0 8px 16px rgba(109, 40, 217, 0.4);
+            transition: all 0.1s ease;
+        }
+        .btn-purple:active {
+            transform: translateY(3px);
+            box-shadow: 0 2px 0 #4c1d95, 0 4px 8px rgba(109, 40, 217, 0.3);
+        }
+        canvas {
+            display: block;
+            touch-action: manipulation;
+        }
+        @keyframes floatSlow {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-6px); }
+        }
+        .float-anim {
+            animation: floatSlow 3.5s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="py-3 px-3 sm:py-5">
+
+    <!-- 頂部標題與狀態列 -->
+    <header class="w-full max-w-md flex flex-col gap-2 mb-2 z-10">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span class="text-2xl sm:text-3xl float-anim">🎃</span>
+                <div>
+                    <h1 class="text-lg sm:text-xl font-black tracking-wide text-orange-400 drop-shadow">
+                        貓咪輪廓對位挑戰
+                    </h1>
+                    <p class="text-xs text-purple-300">看準時機按下暫停，讓賓士貓與目標輪廓完美重合！</p>
+                </div>
+            </div>
+            <!-- 音效開關 -->
+            <button id="soundToggleBtn" class="p-2 rounded-xl bg-purple-900/60 border border-purple-500/40 text-purple-200 hover:text-white text-sm" title="切換音效">
+                🔊
+            </button>
+        </div>
+
+        <!-- 原始照片匯入與模式切換列 -->
+        <div class="flex flex-wrap items-center justify-between gap-2 bg-purple-950/70 border border-purple-700/50 rounded-xl p-2">
+            <div class="flex items-center gap-1.5">
+                <label for="photoUpload" class="cursor-pointer bg-orange-500/20 hover:bg-orange-500/30 border border-orange-400/60 text-orange-300 text-xs font-bold px-2.5 py-1.5 rounded-lg flex items-center gap-1 transition">
+                    <span>📷 載入您的貓咪原圖</span>
+                    <input type="file" id="photoUpload" accept="image/*" class="hidden">
+                </label>
+                <button id="openCropModalBtn" class="hidden bg-purple-700/50 hover:bg-purple-600/60 border border-purple-400/50 text-purple-200 text-xs px-2 py-1.5 rounded-lg transition">
+                    ✂️ 微調去背
+                </button>
+            </div>
+
+            <!-- 運動模式與速度切換 -->
+            <div class="flex items-center gap-1.5">
+                <select id="motionModeSelect" class="bg-purple-900/90 border border-purple-600/60 text-purple-100 text-xs rounded-lg px-2 py-1.5 focus:outline-none">
+                    <option value="pendulum">🕰️ 鐘擺擺盪模式</option>
+                    <option value="bounce">🏀 彈力球跳動模式</option>
+                </select>
+                <select id="speedSelect" class="bg-purple-900/90 border border-purple-600/60 text-purple-100 text-xs rounded-lg px-2 py-1.5 focus:outline-none">
+                    <option value="1">速度：標準</option>
+                    <option value="0.65">速度：慢速</option>
+                    <option value="1.45">速度：快速</option>
+                </select>
+            </div>
+        </div>
+    </header>
+
+    <!-- 計分與紀錄看板 -->
+    <div class="w-full max-w-md grid grid-cols-3 gap-2 mb-2.5 text-center z-10">
+        <div class="bg-purple-950/60 border border-purple-800/60 rounded-xl py-1.5 px-2">
+            <div class="text-[11px] text-purple-300">當下重合度</div>
+            <div id="currentScoreDisplay" class="text-base sm:text-lg font-black text-orange-400">--.-%</div>
+        </div>
+        <div class="bg-purple-950/60 border border-purple-800/60 rounded-xl py-1.5 px-2">
+            <div class="text-[11px] text-purple-300">最高紀錄</div>
+            <div id="bestScoreDisplay" class="text-base sm:text-lg font-black text-emerald-400">0.0%</div>
+        </div>
+        <div class="bg-purple-950/60 border border-purple-800/60 rounded-xl py-1.5 px-2">
+            <div class="text-[11px] text-purple-300">完美連勝</div>
+            <div id="streakDisplay" class="text-base sm:text-lg font-black text-yellow-400">🔥 0</div>
+        </div>
+    </div>
+
+    <!-- 核心遊戲畫布區域 -->
+    <main class="relative w-full max-w-md aspect-[4/5] max-h-[60vh] bg-[#130b24] rounded-2xl border-2 border-orange-500/40 halloween-glow overflow-hidden flex items-center justify-center">
+        <!-- 主遊戲 Canvas -->
+        <canvas id="gameCanvas" class="w-full h-full cursor-pointer"></canvas>
+
+        <!-- 頂部微提示標籤 -->
+        <div class="absolute top-3 left-3 right-3 flex justify-between items-center pointer-events-none">
+            <span id="statusBadge" class="bg-purple-950/80 border border-purple-500/40 text-purple-200 text-xs px-2.5 py-1 rounded-full backdrop-blur-sm">
+                🎃 觀察擺動節奏，對準中央橘色輪廓！
+            </span>
+            <span class="bg-orange-500/20 border border-orange-400/40 text-orange-300 text-[11px] px-2 py-0.5 rounded-full">
+                目標：≥92%
+            </span>
+        </div>
+
+        <!-- 暫停後的判定結果浮層 (位於畫布下方或上方，不遮擋貓咪主體) -->
+        <div id="resultBanner" class="hidden absolute bottom-3 left-3 right-3 bg-gray-950/90 border-2 rounded-2xl p-3 text-center backdrop-blur-md transition-all duration-200 pointer-events-none shadow-2xl">
+            <div id="resultTitle" class="text-lg sm:text-xl font-black mb-0.5">完美對位！</div>
+            <div id="resultSubtitle" class="text-xs sm:text-sm text-gray-200">輪廓重合率：98.5% ｜ 角度誤差：0.4°</div>
+        </div>
+    </main>
+
+    <!-- 底部主要操作按鈕區（適合手機單手大拇指點擊） -->
+    <footer class="w-full max-w-md mt-3 flex flex-col gap-2 z-10">
+        <button id="actionBtn" class="w-full py-3.5 sm:py-4 rounded-2xl font-black text-lg sm:text-xl tracking-wider text-white btn-pumpkin flex items-center justify-center gap-2">
+            <span id="actionBtnIcon">⏸️</span>
+            <span id="actionBtnText">暫停對位！</span>
+        </button>
+        <p class="text-center text-[11px] text-purple-300/70">
+            💡 提示：直接點擊畫面中央或按下鍵盤「空白鍵 (Space)」也能瞬間暫停！
+        </p>
+    </footer>
+
+    <!-- 原始照片智慧去背與輪廓預覽 Modal -->
+    <div id="cropModal" class="hidden fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-3">
+        <div class="bg-[#1e1233] border-2 border-purple-500/60 rounded-2xl w-full max-w-md p-4 flex flex-col gap-3 shadow-2xl max-h-[92vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-purple-800 pb-2">
+                <h2 class="text-base font-black text-orange-400 flex items-center gap-1.5">
+                    <span>✨</span> 原始貓咪照片保真去背器
+                </h2>
+                <button id="closeModalBtn" class="text-purple-300 hover:text-white text-lg font-bold px-2">✕</button>
+            </div>
+
+            <p class="text-xs text-purple-200 leading-relaxed">
+                系統支援<strong>「上傳照片自動貼合賓士貓輪廓」</strong>或<strong>「點擊背景智慧去背 / 筆刷微調」</strong>。去背過程 <strong>100% 保留貓咪原始照片像素</strong>，絕不改變五官、毛色與比例！
+            </p>
+
+            <!-- 去背模式工具列 -->
+            <div class="flex flex-wrap gap-1.5 bg-purple-950/80 p-2 rounded-xl border border-purple-700/50 text-xs">
+                <button id="autoTemplateMaskBtn" class="bg-orange-500 hover:bg-orange-600 text-white font-bold px-2.5 py-1.5 rounded-lg transition">
+                    🐱 自動套用此張賓士貓精準剪影
+                </button>
+                <button id="magicWandModeBtn" class="bg-purple-800 hover:bg-purple-700 text-purple-100 px-2.5 py-1.5 rounded-lg transition">
+                    🪄 點擊背景去背
+                </button>
+                <button id="eraserModeBtn" class="bg-purple-800 hover:bg-purple-700 text-purple-100 px-2.5 py-1.5 rounded-lg transition">
+                    🧹 擦除背景
+                </button>
+                <button id="restoreModeBtn" class="bg-purple-800 hover:bg-purple-700 text-purple-100 px-2.5 py-1.5 rounded-lg transition">
+                    🖌️ 還原貓咪
+                </button>
+                <button id="resetMaskBtn" class="bg-gray-700 hover:bg-gray-600 text-gray-200 px-2 py-1.5 rounded-lg transition ml-auto">
+                    🔄 重置原圖
+                </button>
+            </div>
+
+            <!-- 容差與筆刷大小滑桿 -->
+            <div class="flex items-center gap-3 text-xs text-purple-200 px-1">
+                <span id="sliderLabel">去背容差 / 筆刷大小：</span>
+                <input type="range" id="toolStrengthSlider" min="8" max="65" value="28" class="flex-1 accent-orange-500">
+            </div>
+
+            <!-- 互動編輯畫布 -->
+            <div class="relative w-full aspect-[3/4] max-h-[45vh] bg-[#11091f] rounded-xl overflow-hidden border border-purple-600/50 flex items-center justify-center">
+                <canvas id="editorCanvas" class="w-full h-full object-contain cursor-crosshair"></canvas>
+            </div>
+
+            <div class="flex gap-2 mt-1">
+                <button id="applyCustomCatBtn" class="flex-1 py-2.5 rounded-xl font-black text-white btn-pumpkin text-sm">
+                    ✅ 完成並用此照片開始遊戲
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * 萬聖節貓咪輪廓對位挑戰 - 核心程式
+         * 100% 確保前景貓咪與固定輪廓底圖來自同一份 Alpha 遮罩與像素圖層，
+         * 並使用離屏 Canvas 進行真實像素級別的交集/重合度 (IoU) 計算。
+         */
+
+        // ==================== 音效合成器 (Web Audio API，無外部音檔依賴) ====================
+        class SoundEffects {
+            constructor() {
+                this.enabled = true;
+                this.ctx = null;
+            }
+            init() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) this.ctx = new AudioCtx();
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+            playClick() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(520, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(240, this.ctx.currentTime + 0.08);
+                gain.gain.setValueAtTime(0.18, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.08);
+            }
+            playSuccess() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+                const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+                notes.forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime + idx * 0.07);
+                    gain.gain.setValueAtTime(0.15, this.ctx.currentTime + idx * 0.07);
+                    gain.gain.exponentialRampToValueAtTime(0.005, this.ctx.currentTime + idx * 0.07 + 0.25);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(this.ctx.currentTime + idx * 0.07);
+                    osc.stop(this.ctx.currentTime + idx * 0.07 + 0.25);
+                });
+            }
+            playNearMiss() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+                const notes = [440, 392];
+                notes.forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime + idx * 0.12);
+                    gain.gain.setValueAtTime(0.12, this.ctx.currentTime + idx * 0.12);
+                    gain.gain.exponentialRampToValueAtTime(0.005, this.ctx.currentTime + idx * 0.12 + 0.2);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(this.ctx.currentTime + idx * 0.12);
+                    osc.stop(this.ctx.currentTime + idx * 0.12 + 0.2);
+                });
+            }
+        }
+        const sfx = new SoundEffects();
+
+        // ==================== 全域狀態與圖層畫布 ====================
+        const gameCanvas = document.getElementById('gameCanvas');
+        const ctx = gameCanvas.getContext('2d');
+
+        // 標準化貓咪精靈圖尺寸 (確保高解析度與快速像素比對)
+        const SPRITE_W = 360;
+        const SPRITE_H = 450;
+
+        // 1. 前景真實貓咪圖層 (去背後的完整貓咪影像)
+        const catSpriteCanvas = document.createElement('canvas');
+        catSpriteCanvas.width = SPRITE_W;
+        catSpriteCanvas.height = SPRITE_H;
+        const catSpriteCtx = catSpriteCanvas.getContext('2d');
+
+        // 2. 固定輪廓底圖圖層 (僅包含外部剪影與清晰輪廓線，無內部五官細節)
+        const silhouetteCanvas = document.createElement('canvas');
+        silhouetteCanvas.width = SPRITE_W;
+        silhouetteCanvas.height = SPRITE_H;
+        const silhouetteCtx = silhouetteCanvas.getContext('2d');
+
+        // 3. 離屏重合度計算專用畫布 (縮小取樣以維持手機 60fps 瞬間計算真實像素 IoU)
+        const EVAL_W = 180;
+        const EVAL_H = 225;
+        const evalTargetCanvas = document.createElement('canvas');
+        evalTargetCanvas.width = EVAL_W;
+        evalTargetCanvas.height = EVAL_H;
+        const evalTargetCtx = evalTargetCanvas.getContext('2d', { willReadFrequently: true });
+
+        const evalMovingCanvas = document.createElement('canvas');
+        evalMovingCanvas.width = EVAL_W;
+        evalMovingCanvas.height = EVAL_H;
+        const evalMovingCtx = evalMovingCanvas.getContext('2d', { willReadFrequently: true });
+
+        // 遊戲運行狀態
+        let isRunning = true;
+        let motionMode = 'pendulum'; // 'pendulum' | 'bounce'
+        let speedMultiplier = 1.0;
+        let animTime = 0;
+        let lastTimestamp = performance.now();
+
+        // 擺動與彈跳物理參數
+        const MAX_ANGLE_DEG = 38; // 最大擺動角度 38 度，確保明顯錯開且經過中央時可重合
+        const MAX_ANGLE_RAD = (MAX_ANGLE_DEG * Math.PI) / 180;
+        let currentAngleRad = 0;
+        let bounceOffsetX = 0;
+        let bounceOffsetY = 0;
+
+        // 分數紀錄
+        let bestOverlapScore = 0;
+        let currentStreak = 0;
+
+        // 慶祝特效光圈 (僅在成功暫停時輕微閃耀，不干擾判斷)
+        let celebrationRingAlpha = 0;
+
+        // ==================== 建立高擬真預設賓士貓影像（100% 依照上傳照片特徵） ====================
+        /**
+         * 根據使用者上傳的賓士貓照片特徵繪製高擬真預設圖層：
+         * - 坐姿側面朝右，頭微轉向鏡頭
+         * - 黑色頭頂與兩隻尖耳（耳內粉灰白毛）、白色長眉鬚
+         * - 黃綠色明亮大圓眼、深黑瞳孔
+         * - 白色口鼻部（倒V分佈）、極具辨識度的「黑色愛心鼻頭」與「下巴黑色小斑塊」
+         * - 白色豐滿胸毛與筆直的白色前腿、白色小肉球腳掌
+         * - 黑色背部延伸至臀部（臀部上方有一抹白色毛流細節）
+         * - 黑色長尾巴從後方往前環繞在身體與前腳底部
+         */
+        function generateDefaultTuxedoCat(targetCtx, width, height, maskOnly = false) {
+            targetCtx.clearRect(0, 0, width, height);
+            targetCtx.save();
+            const sx = width / 360;
+            const sy = height / 450;
+            targetCtx.scale(sx, sy);
+
+            // 定義與原始照片完全一致的外部剪影路徑函數
+            function traceCatOuterContour(c) {
+                c.beginPath();
+                // 從左耳尖開始 (照片中偏左上的高聳尖耳)
+                c.moveTo(132, 54);
+                // 左耳內側至頭頂黑毛區
+                c.quadraticCurveTo(156, 76, 174, 88);
+                c.quadraticCurveTo(196, 86, 214, 90);
+                // 右耳內側至右耳尖 (照片中偏右上的尖耳)
+                c.quadraticCurveTo(238, 74, 266, 62);
+                // 右耳外側往下至右臉頰
+                c.quadraticCurveTo(250, 96, 244, 120);
+                // 右側臉頰黑色輪廓與白色口鼻側邊
+                c.bezierCurveTo(252, 138, 250, 158, 240, 172);
+                c.quadraticCurveTo(234, 184, 224, 192);
+                // 白色豐滿胸前毛流 (照片中向右鼓起的白胸毛)
+                c.bezierCurveTo(240, 216, 242, 255, 226, 292);
+                // 白色前腿筆直往下
+                c.bezierCurveTo(218, 318, 214, 344, 218, 362);
+                // 白色前腳掌 (兩層圓潤腳掌)
+                c.quadraticCurveTo(234, 366, 232, 378);
+                c.quadraticCurveTo(238, 386, 232, 396);
+                c.quadraticCurveTo(222, 402, 200, 398);
+                // 環繞在底部的黑色粗尾巴下緣
+                c.bezierCurveTo(175, 422, 118, 424, 72, 404);
+                c.bezierCurveTo(36, 390, 24, 368, 32, 342);
+                // 背部左側黑色毛流往上延伸至後頸
+                c.bezierCurveTo(28, 290, 38, 230, 74, 190);
+                c.bezierCurveTo(96, 166, 120, 152, 142, 140);
+                // 左臉頰與左耳外側回到左耳尖
+                c.quadraticCurveTo(140, 118, 142, 98);
+                c.quadraticCurveTo(136, 76, 132, 54);
+                c.closePath();
+            }
+
+            if (maskOnly) {
+                traceCatOuterContour(targetCtx);
+                targetCtx.fillStyle = '#ffffff';
+                targetCtx.fill();
+                targetCtx.restore();
+                return;
+            }
+
+            // 1. 先以完整貓咪剪影建立裁切遮罩，確保所有內部毛色100%不超出外部輪廓
+            traceCatOuterContour(targetCtx);
+            targetCtx.save();
+            targetCtx.clip();
+
+            // 2. 底層塗滿柔順的白色毛髮基底 (胸毛、肚子、前腳、口鼻部)
+            const whiteFurGrad = targetCtx.createLinearGradient(80, 120, 250, 390);
+            whiteFurGrad.addColorStop(0, '#fcfbf9');
+            whiteFurGrad.addColorStop(0.5, '#f5f2eb');
+            whiteFurGrad.addColorStop(1, '#e5dec9');
+            targetCtx.fillStyle = whiteFurGrad;
+            targetCtx.fillRect(0, 0, 360, 450);
+
+            // 胸前與前腿的立體柔和光影 (模擬照片右側室內光線)
+            const chestShadow = targetCtx.createRadialGradient(170, 270, 15, 175, 280, 95);
+            chestShadow.addColorStop(0, 'rgba(255,255,255,0)');
+            chestShadow.addColorStop(1, 'rgba(210,200,182,0.45)');
+            targetCtx.fillStyle = chestShadow;
+            targetCtx.fillRect(100, 180, 150, 220);
+
+            // 前腳掌分界細節線
+            targetCtx.strokeStyle = 'rgba(180, 168, 150, 0.7)';
+            targetCtx.lineWidth = 2.2;
+            targetCtx.beginPath();
+            targetCtx.moveTo(192, 376);
+            targetCtx.quadraticCurveTo(215, 378, 230, 376);
+            targetCtx.moveTo(212, 392);
+            targetCtx.quadraticCurveTo(222, 391, 230, 393);
+            targetCtx.stroke();
+
+            // 3. 繪製黑色背部與側身賓士斑紋 (完全對應照片中左半身的黑毛分佈與臀部白毛缺口)
+            targetCtx.fillStyle = '#141416';
+            targetCtx.beginPath();
+            targetCtx.moveTo(142, 138);
+            // 頸部黑白交界 (照片中白色領巾往上延伸至左頰下方)
+            targetCtx.bezierCurveTo(132, 162, 132, 192, 136, 218);
+            // 肩胛骨下方黑毛往胸前延伸的尖角
+            targetCtx.bezierCurveTo(122, 235, 108, 250, 105, 276);
+            // 側腹白色毛塊向上凹入
+            targetCtx.bezierCurveTo(112, 305, 118, 326, 104, 344);
+            // 臀部上方那道特徵性的白色橫紋缺口
+            targetCtx.quadraticCurveTo(75, 348, 52, 338);
+            targetCtx.lineTo(25, 350);
+            targetCtx.lineTo(25, 130);
+            targetCtx.closePath();
+            targetCtx.fill();
+
+            // 4. 繪製環繞在身體底部的黑色粗尾巴 (照片中壓在鍵盤上方的黑尾巴)
+            const tailGrad = targetCtx.createLinearGradient(30, 355, 205, 415);
+            tailGrad.addColorStop(0, '#101012');
+            tailGrad.addColorStop(0.6, '#1c1c20');
+            tailGrad.addColorStop(1, '#121215');
+            targetCtx.fillStyle = tailGrad;
+            targetCtx.beginPath();
+            targetCtx.moveTo(30, 342);
+            targetCtx.bezierCurveTo(55, 368, 105, 376, 152, 366);
+            targetCtx.bezierCurveTo(175, 362, 198, 374, 200, 396);
+            targetCtx.bezierCurveTo(170, 424, 110, 425, 65, 405);
+            targetCtx.bezierCurveTo(35, 392, 24, 368, 30, 342);
+            targetCtx.closePath();
+            targetCtx.fill();
+
+            // 黑白毛交界處的真實細毛筆觸 (模擬照片中真實毛流過渡)
+            targetCtx.strokeStyle = '#18181b';
+            targetCtx.lineWidth = 2;
+            for (let y = 148; y < 338; y += 4) {
+                let xBase = 134;
+                if (y > 215 && y < 280) xBase = 115 - Math.sin((y - 215) / 65 * Math.PI) * 14;
+                else if (y >= 280) xBase = 112;
+                targetCtx.beginPath();
+                targetCtx.moveTo(xBase - 6, y);
+                targetCtx.lineTo(xBase + 7, y + 3);
+                targetCtx.stroke();
+            }
+
+            // 5. 繪製頭部黑色面罩與尖耳 (照片中的標準賓士貓黑頭罩，鼻樑中央有白色閃電倒V往上)
+            targetCtx.fillStyle = '#151518';
+            targetCtx.beginPath();
+            targetCtx.moveTo(132, 54);
+            targetCtx.quadraticCurveTo(156, 76, 174, 88);
+            targetCtx.quadraticCurveTo(196, 86, 214, 90);
+            targetCtx.quadraticCurveTo(238, 74, 266, 62);
+            targetCtx.quadraticCurveTo(250, 96, 244, 120);
+            targetCtx.bezierCurveTo(251, 138, 250, 156, 241, 166);
+            // 右臉頰黑白分界線 (在右眼下方轉折至鼻樑)
+            targetCtx.quadraticCurveTo(226, 165, 218, 152);
+            // 鼻樑白色尖角 (照片中偏左上的白色鼻樑條紋)
+            targetCtx.lineTo(205, 118);
+            targetCtx.lineTo(197, 148);
+            // 左眼下方與左臉頰黑色面罩下緣
+            targetCtx.quadraticCurveTo(178, 168, 156, 156);
+            targetCtx.quadraticCurveTo(144, 146, 141, 132);
+            targetCtx.closePath();
+            targetCtx.fill();
+
+            // 6. 雙耳內部粉灰耳廓與耳毛細節
+            // 左耳內側
+            const leftEarGrad = targetCtx.createLinearGradient(138, 65, 166, 108);
+            leftEarGrad.addColorStop(0, '#6e5256');
+            leftEarGrad.addColorStop(0.6, '#4a383b');
+            leftEarGrad.addColorStop(1, '#231e21');
+            targetCtx.fillStyle = leftEarGrad;
+            targetCtx.beginPath();
+            targetCtx.moveTo(137, 62);
+            targetCtx.lineTo(168, 92);
+            targetCtx.lineTo(146, 105);
+            targetCtx.closePath();
+            targetCtx.fill();
+
+            // 右耳內側
+            const rightEarGrad = targetCtx.createLinearGradient(258, 68, 224, 110);
+            rightEarGrad.addColorStop(0, '#6e5256');
+            rightEarGrad.addColorStop(1, '#231e21');
+            targetCtx.fillStyle = rightEarGrad;
+            targetCtx.beginPath();
+            targetCtx.moveTo(258, 68);
+            targetCtx.lineTo(222, 95);
+            targetCtx.lineTo(240, 112);
+            targetCtx.closePath();
+            targetCtx.fill();
+
+            // 耳內白色細毛
+            targetCtx.strokeStyle = 'rgba(235, 228, 225, 0.55)';
+            targetCtx.lineWidth = 1.3;
+            for (let i = 0; i < 5; i++) {
+                targetCtx.beginPath();
+                targetCtx.moveTo(145 + i * 4, 102 - i * 2);
+                targetCtx.lineTo(154 + i * 3, 86 - i * 2);
+                targetCtx.stroke();
+
+                targetCtx.beginPath();
+                targetCtx.moveTo(238 - i * 3, 108 - i * 2);
+                targetCtx.lineTo(232 - i * 2, 92 - i * 2);
+                targetCtx.stroke();
+            }
+
+            // 7. 繪製黃綠色圓潤雙眼 (完全對應照片中微驚訝又可愛的圓眼與角度)
+            function drawCatEye(cx, cy, rx, ry, rot) {
+                targetCtx.save();
+                targetCtx.translate(cx, cy);
+                targetCtx.rotate(rot);
+
+                // 眼眶深色外圈
+                targetCtx.beginPath();
+                targetCtx.ellipse(0, 0, rx + 2, ry + 2, 0, 0, Math.PI * 2);
+                targetCtx.fillStyle = '#09090b';
+                targetCtx.fill();
+
+                // 黃綠色虹膜漸層
+                const irisGrad = targetCtx.createRadialGradient(0, 0, rx * 0.2, 0, 0, rx);
+                irisGrad.addColorStop(0, '#c8d64c');
+                irisGrad.addColorStop(0.65, '#9cb33e');
+                irisGrad.addColorStop(1, '#4d5e1e');
+                targetCtx.beginPath();
+                targetCtx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+                targetCtx.fillStyle = irisGrad;
+                targetCtx.fill();
+
+                // 圓形偏橢圓的黑瞳孔 (照片中室內光線下瞳孔大而圓潤)
+                targetCtx.beginPath();
+                targetCtx.ellipse(0, 0, rx * 0.54, ry * 0.68, 0, 0, Math.PI * 2);
+                targetCtx.fillStyle = '#070709';
+                targetCtx.fill();
+
+                // 眼神高光點
+                targetCtx.beginPath();
+                targetCtx.arc(-rx * 0.28, -ry * 0.3, rx * 0.2, 0, Math.PI * 2);
+                targetCtx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                targetCtx.fill();
+
+                targetCtx.beginPath();
+                targetCtx.arc(rx * 0.25, ry * 0.22, rx * 0.09, 0, Math.PI * 2);
+                targetCtx.fillStyle = 'rgba(255, 255, 255, 0.55)';
+                targetCtx.fill();
+
+                targetCtx.restore();
+            }
+
+            // 左眼與右眼位置（完全對齊照片比例）
+            drawCatEye(180, 140, 13.5, 12.5, 0.08);
+            drawCatEye(226, 141, 11.8, 12.0, -0.06);
+
+            // 8. 繪製極具辨識度的口鼻特徵：粉白鼻樑、黑色愛心鼻頭、嘴巴與下巴黑斑
+            // 鼻樑淡淡的粉膚色陰影
+            const noseBridgeGrad = targetCtx.createRadialGradient(209, 158, 2, 209, 158, 16);
+            noseBridgeGrad.addColorStop(0, 'rgba(232, 185, 178, 0.65)');
+            noseBridgeGrad.addColorStop(1, 'rgba(232, 185, 178, 0)');
+            targetCtx.fillStyle = noseBridgeGrad;
+            targetCtx.beginPath();
+            targetCtx.arc(209, 158, 16, 0, Math.PI * 2);
+            targetCtx.fill();
+
+            // 黑色愛心形狀鼻頭 (照片中最可愛的焦點特徵)
+            targetCtx.fillStyle = '#181416';
+            targetCtx.beginPath();
+            targetCtx.moveTo(210, 177);
+            targetCtx.bezierCurveTo(203, 173, 199, 166, 204, 163);
+            targetCtx.quadraticCurveTo(208, 162, 210, 166);
+            targetCtx.quadraticCurveTo(213, 162, 217, 163);
+            targetCtx.bezierCurveTo(221, 166, 217, 173, 210, 177);
+            targetCtx.closePath();
+            targetCtx.fill();
+
+            // 鼻翼上方微粉紅邊緣
+            targetCtx.fillStyle = 'rgba(219, 143, 143, 0.65)';
+            targetCtx.beginPath();
+            targetCtx.arc(205, 162, 2.5, 0, Math.PI * 2);
+            targetCtx.arc(215, 162, 2.5, 0, Math.PI * 2);
+            targetCtx.fill();
+
+            // 嘴巴微笑線與下巴黑色小斑塊 (照片中下巴正中央有一塊明顯的黑斑)
+            targetCtx.strokeStyle = '#3a2e32';
+            targetCtx.lineWidth = 1.8;
+            targetCtx.beginPath();
+            targetCtx.moveTo(210, 177);
+            targetCtx.lineTo(209, 182);
+            targetCtx.quadraticCurveTo(202, 186, 196, 183);
+            targetCtx.moveTo(209, 182);
+            targetCtx.quadraticCurveTo(216, 186, 221, 183);
+            targetCtx.stroke();
+
+            // 下巴黑斑 (Chin Patch)
+            targetCtx.fillStyle = '#222024';
+            targetCtx.beginPath();
+            targetCtx.ellipse(206, 188, 9.5, 4.2, -0.05, 0, Math.PI * 2);
+            targetCtx.fill();
+
+            // 9. 繪製白色長眉鬚與臉頰鬍鬚 (照片中黑色的額頭上有明顯的白色向上弧形眉鬚)
+            targetCtx.strokeStyle = 'rgba(255, 255, 255, 0.82)';
+            targetCtx.lineWidth = 1.2;
+            // 左眉鬚
+            for (let i = 0; i < 4; i++) {
+                targetCtx.beginPath();
+                targetCtx.moveTo(186 - i * 3, 120 - i * 1.5);
+                targetCtx.quadraticCurveTo(175 - i * 6, 92 - i * 4, 158 - i * 7, 78 - i * 3);
+                targetCtx.stroke();
+            }
+            // 右眉鬚
+            for (let i = 0; i < 4; i++) {
+                targetCtx.beginPath();
+                targetCtx.moveTo(218 + i * 2.5, 120 - i * 1.5);
+                targetCtx.quadraticCurveTo(232 + i * 5, 92 - i * 4, 248 + i * 6, 78 - i * 3);
+                targetCtx.stroke();
+            }
+            // 臉頰白色鬍鬚
+            targetCtx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
+            for (let i = 0; i < 4; i++) {
+                targetCtx.beginPath();
+                targetCtx.moveTo(192, 172 + i * 3);
+                targetCtx.quadraticCurveTo(164, 174 + i * 5, 138, 182 + i * 7);
+                targetCtx.stroke();
+            }
+
+            targetCtx.restore(); // 結束 clip
+
+            // 外緣柔和抗鋸齒微光，使去背邊緣自然乾淨
+            traceCatOuterContour(targetCtx);
+            targetCtx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+            targetCtx.lineWidth = 1.2;
+            targetCtx.stroke();
+
+            targetCtx.restore();
+        }
+
+        // ==================== 根據前景貓咪自動生成「固定輪廓底圖」與「離屏比對遮罩」 ====================
+        /**
+         * 嚴格遵守規範三：
+         * 1. 輪廓根據同一張貓咪影像的 Alpha 通道生成，100% 對應外部剪影。
+         * 2. 底圖只顯示貓咪的外部輪廓與深色剪影，不顯示眼睛、鼻子、毛色等內部細節。
+         * 3. 同時更新離屏像素計算畫布 evalTargetCtx，確保對位判定絕對精準。
+         */
+        function buildSilhouetteAndEvalMaskFromCatSprite() {
+            const w = SPRITE_W;
+            const h = SPRITE_H;
+            const srcData = catSpriteCtx.getImageData(0, 0, w, h).data;
+
+            silhouetteCtx.clearRect(0, 0, w, h);
+            const silImgData = silhouetteCtx.createImageData(w, h);
+            const dst = silImgData.data;
+
+            // 先建立二值化 Alpha 遮罩陣列
+            const alphaMask = new Uint8Array(w * h);
+            for (let i = 0; i < w * h; i++) {
+                alphaMask[i] = srcData[i * 4 + 3] > 60 ? 1 : 0;
+            }
+
+            // 形態學邊緣偵測：找出純外部輪廓線 (厚度約 3.5px) 與內部純色剪影
+            const radius = 3;
+            for (let y = 0; y < h; y++) {
+                for (let x = 0; x < w; x++) {
+                    const idx = y * w + x;
+                    if (alphaMask[idx] === 1) {
+                        // 檢查周圍是否有透明像素，若有則為外部輪廓邊界線
+                        let isEdge = false;
+                        for (let dy = -radius; dy <= radius && !isEdge; dy++) {
+                            for (let dx = -radius; dx <= radius; dx++) {
+                                const nx = x + dx;
+                                const ny = y + dy;
+                                if (nx < 0 || nx >= w || ny < 0 || ny >= h || alphaMask[ny * w + nx] === 0) {
+                                    isEdge = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        const p = idx * 4;
+                        if (isEdge) {
+                            // 清晰簡潔的萬聖節南瓜橘金輪廓線 (#ff9429)
+                            dst[p] = 255;
+                            dst[p + 1] = 148;
+                            dst[p + 2] = 41;
+                            dst[p + 3] = 245;
+                        } else {
+                            // 內部純單色深紫黑半透明剪影（完全不顯示任何五官或毛色內部細節）
+                            dst[p] = 18;
+                            dst[p + 1] = 9;
+                            dst[p + 2] = 34;
+                            dst[p + 3] = 195;
+                        }
+                    }
+                }
+            }
+
+            silhouetteCtx.putImageData(silImgData, 0, 0);
+
+            // 更新離屏基準遮罩 (固定在 0 度中央位置)
+            evalTargetCtx.clearRect(0, 0, EVAL_W, EVAL_H);
+            evalTargetCtx.drawImage(catSpriteCanvas, 0, 0, EVAL_W, EVAL_H);
+        }
+
+        // ==================== 真實像素級重合率計算 (Pixel IoU / Overlap Accuracy) ====================
+        /**
+         * 在離屏 Canvas 上以相同變換矩陣繪製當下凍結的前景貓咪，
+         * 逐像素比對「前景貓咪非透明像素」與「固定底圖非透明像素」的真實重合比例。
+         */
+        function calculateRealPixelOverlap() {
+            evalMovingCtx.clearRect(0, 0, EVAL_W, EVAL_H);
+            evalMovingCtx.save();
+
+            // 轉換座標比例至 EVAL_W x EVAL_H
+            const pivotX = EVAL_W * 0.5;
+            const pivotY = motionMode === 'pendulum' ? EVAL_H * 0.12 : EVAL_H * 0.5;
+
+            if (motionMode === 'pendulum') {
+                evalMovingCtx.translate(pivotX, pivotY);
+                evalMovingCtx.rotate(currentAngleRad);
+                evalMovingCtx.translate(-pivotX, -pivotY);
+            } else {
+                const scaleX = EVAL_W / SPRITE_W;
+                const scaleY = EVAL_H / SPRITE_H;
+                evalMovingCtx.translate(bounceOffsetX * scaleX, bounceOffsetY * scaleY);
+                evalMovingCtx.translate(pivotX, pivotY);
+                evalMovingCtx.rotate(currentAngleRad * 0.35);
+                evalMovingCtx.translate(-pivotX, -pivotY);
+            }
+
+            evalMovingCtx.drawImage(catSpriteCanvas, 0, 0, EVAL_W, EVAL_H);
+            evalMovingCtx.restore();
+
+            const targetData = evalTargetCtx.getImageData(0, 0, EVAL_W, EVAL_H).data;
+            const movingData = evalMovingCtx.getImageData(0, 0, EVAL_W, EVAL_H).data;
+
+            let targetArea = 0;
+            let intersection = 0;
+
+            for (let i = 3; i < targetData.length; i += 4) {
+                const tAlpha = targetData[i] > 60;
+                const mAlpha = movingData[i] > 60;
+                if (tAlpha) {
+                    targetArea++;
+                    if (mAlpha) {
+                        intersection++;
+                    }
+                }
+            }
+
+            if (targetArea === 0) return 0;
+            // 真實目標輪廓覆蓋率 (0% ~ 100%)
+            const rawDice = (intersection / targetArea) * 100;
+            return Math.min(100, Math.max(0, rawDice));
+        }
+
+        // ==================== 主遊戲畫面渲染與物理擺盪迴圈 ====================
+        function resizeGameCanvas() {
+            const rect = gameCanvas.parentElement.getBoundingClientRect();
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            gameCanvas.width = rect.width * dpr;
+            gameCanvas.height = rect.height * dpr;
+        }
+        window.addEventListener('resize', resizeGameCanvas);
+
+        function drawSubtleHalloweenDecor(c, w, h) {
+            c.save();
+            // 1. 頂部柔和滿月光暈 (不干擾中央輪廓)
+            const moonR = Math.min(w, h) * 0.09;
+            const moonX = w * 0.84;
+            const moonY = h * 0.14;
+            const moonGlow = c.createRadialGradient(moonX, moonY, moonR * 0.2, moonX, moonY, moonR * 2.2);
+            moonGlow.addColorStop(0, 'rgba(253, 224, 71, 0.22)');
+            moonGlow.addColorStop(1, 'rgba(253, 224, 71, 0)');
+            c.fillStyle = moonGlow;
+            c.beginPath();
+            c.arc(moonX, moonY, moonR * 2.2, 0, Math.PI * 2);
+            c.fill();
+
+            c.fillStyle = 'rgba(254, 240, 138, 0.16)';
+            c.beginPath();
+            c.arc(moonX, moonY, moonR, 0, Math.PI * 2);
+            c.fill();
+
+            // 2. 鐘擺頂部懸掛支點標示 (僅在鐘擺模式顯示極簡蛛絲支點)
+            if (motionMode === 'pendulum') {
+                const centerX = w * 0.5;
+                const topY = h * 0.14;
+                c.strokeStyle = 'rgba(167, 139, 250, 0.22)';
+                c.lineWidth = 2;
+                c.setLineDash([4, 4]);
+                c.beginPath();
+                c.moveTo(centerX, 0);
+                c.lineTo(centerX, topY);
+                c.stroke();
+                c.setLineDash([]);
+
+                c.fillStyle = 'rgba(251, 146, 60, 0.5)';
+                c.beginPath();
+                c.arc(centerX, topY, 4, 0, Math.PI * 2);
+                c.fill();
+            }
+            c.restore();
+        }
+
+        function renderGameLoop(timestamp) {
+            const dt = Math.min((timestamp - lastTimestamp) / 1000, 0.1);
+            lastTimestamp = timestamp;
+
+            if (isRunning) {
+                animTime += dt * speedMultiplier * 2.75;
+
+                if (motionMode === 'pendulum') {
+                    // 真實物理鐘擺正弦運動：在兩側極限處自然減速，經過中央 0 度時速度最快
+                    currentAngleRad = MAX_ANGLE_RAD * Math.sin(animTime);
+                    bounceOffsetX = 0;
+                    bounceOffsetY = 0;
+                } else {
+                    // 彈力球跳動模式：平滑李薩如/彈跳軌跡，規律經過正中央 (0,0)
+                    bounceOffsetX = 95 * Math.sin(animTime * 1.1);
+                    bounceOffsetY = 55 * Math.sin(animTime * 2.2);
+                    currentAngleRad = 0.25 * Math.sin(animTime * 1.1);
+                }
+            }
+
+            const w = gameCanvas.width;
+            const h = gameCanvas.height;
+            ctx.clearRect(0, 0, w, h);
+
+            // 繪製低干擾的萬聖節背景裝飾
+            drawSubtleHalloweenDecor(ctx, w, h);
+
+            // 計算貓咪圖層在畫布正中央的繪製尺寸與位置 (全程固定比例，絕不壓扁或拉長)
+            const scale = Math.min((w * 0.76) / SPRITE_W, (h * 0.76) / SPRITE_H);
+            const drawW = SPRITE_W * scale;
+            const drawH = SPRITE_H * scale;
+            const targetX = (w - drawW) * 0.5;
+            const targetY = (h - drawH) * 0.52;
+
+            // ---------------- 圖層 1：固定不動的貓咪輪廓底圖 ----------------
+            ctx.save();
+            // 當完美成功時顯示柔和慶祝光暈
+            if (!isRunning && celebrationRingAlpha > 0) {
+                ctx.shadowColor = 'rgba(251, 146, 60, 0.85)';
+                ctx.shadowBlur = 25;
+            }
+            ctx.drawImage(silhouetteCanvas, targetX, targetY, drawW, drawH);
+            ctx.restore();
+
+            // ---------------- 圖層 2：擺動中的前景真實貓咪 ----------------
+            ctx.save();
+            if (motionMode === 'pendulum') {
+                // 鐘擺支點設定於貓咪頭部上方中心軸，呈現自然鐘擺搖晃
+                const pivotX = targetX + drawW * 0.5;
+                const pivotY = targetY + drawH * 0.12;
+                ctx.translate(pivotX, pivotY);
+                ctx.rotate(currentAngleRad);
+                ctx.translate(-pivotX, -pivotY);
+            } else {
+                const centerX = targetX + drawW * 0.5;
+                const centerY = targetY + drawH * 0.5;
+                ctx.translate(bounceOffsetX * scale, bounceOffsetY * scale);
+                ctx.translate(centerX, centerY);
+                ctx.rotate(currentAngleRad * 0.35);
+                ctx.translate(-centerX, -centerY);
+            }
+
+            // 繪製 100% 原始保真的前景貓咪
+            ctx.drawImage(catSpriteCanvas, targetX, targetY, drawW, drawH);
+            ctx.restore();
+
+            requestAnimationFrame(renderGameLoop);
+        }
+
+        // ==================== 遊戲互動：暫停、重合率判定與重試 ====================
+        const actionBtn = document.getElementById('actionBtn');
+        const actionBtnIcon = document.getElementById('actionBtnIcon');
+        const actionBtnText = document.getElementById('actionBtnText');
+        const resultBanner = document.getElementById('resultBanner');
+        const resultTitle = document.getElementById('resultTitle');
+        const resultSubtitle = document.getElementById('resultSubtitle');
+        const currentScoreDisplay = document.getElementById('currentScoreDisplay');
+        const bestScoreDisplay = document.getElementById('bestScoreDisplay');
+        const streakDisplay = document.getElementById('streakDisplay');
+        const statusBadge = document.getElementById('statusBadge');
+
+        function togglePauseOrRetry() {
+            if (isRunning) {
+                // 立即凍結動畫
+                isRunning = false;
+
+                // 計算真實像素重合度
+                const overlapPercent = calculateRealPixelOverlap();
+                const angleErrDeg = Math.abs((currentAngleRad * 180) / Math.PI);
+
+                currentScoreDisplay.textContent = `${overlapPercent.toFixed(1)}%`;
+
+                if (overlapPercent > bestOverlapScore) {
+                    bestOverlapScore = overlapPercent;
+                    bestScoreDisplay.textContent = `${bestOverlapScore.toFixed(1)}%`;
+                }
+
+                // 判定成功或失敗 (重合度 >= 92% 視為完美對位)
+                resultBanner.classList.remove('hidden', 'border-emerald-400', 'border-orange-400', 'border-rose-500');
+
+                if (overlapPercent >= 92.0) {
+                    sfx.playSuccess();
+                    currentStreak++;
+                    celebrationRingAlpha = 1;
+                    resultBanner.classList.add('border-emerald-400');
+                    resultTitle.className = 'text-lg sm:text-xl font-black mb-0.5 text-emerald-400';
+                    resultTitle.textContent = overlapPercent >= 96.5 ? '🎃 完美對位！喵～太準了！' : '🎃 完美對位！成功重合！';
+                    statusBadge.textContent = '✨ 太厲害了！輪廓幾乎完全貼合！';
+                } else if (overlapPercent >= 78.0) {
+                    sfx.playNearMiss();
+                    currentStreak = 0;
+                    celebrationRingAlpha = 0;
+                    resultBanner.classList.add('border-orange-400');
+                    resultTitle.className = 'text-lg sm:text-xl font-black mb-0.5 text-orange-400';
+                    resultTitle.textContent = '👻 差一點點，再試一次！';
+                    statusBadge.textContent = '👻 只差一點點角度就完全重合囉！';
+                } else {
+                    sfx.playClick();
+                    currentStreak = 0;
+                    celebrationRingAlpha = 0;
+                    resultBanner.classList.add('border-rose-500');
+                    resultTitle.className = 'text-lg sm:text-xl font-black mb-0.5 text-rose-400';
+                    resultTitle.textContent = '🦇 差一點點，再試一次！';
+                    statusBadge.textContent = '🦇 貓咪還在外側擺盪，抓準經過中央的瞬間！';
+                }
+
+                streakDisplay.textContent = `🔥 ${currentStreak}`;
+                resultSubtitle.textContent = `實際輪廓重合率：${overlapPercent.toFixed(1)}% ｜ 角度偏差：${angleErrDeg.toFixed(1)}°`;
+
+                // 切換按鈕為「重新開始挑戰」
+                actionBtn.classList.remove('btn-pumpkin');
+                actionBtn.classList.add('btn-purple');
+                actionBtnIcon.textContent = '🔄';
+                actionBtnText.textContent = '繼續擺動 / 再挑戰一次！';
+            } else {
+                // 重新開始擺動
+                sfx.playClick();
+                isRunning = true;
+                celebrationRingAlpha = 0;
+                resultBanner.classList.add('hidden');
+                statusBadge.textContent = '🎃 觀察擺動節奏，對準中央橘色輪廓！';
+
+                actionBtn.classList.remove('btn-purple');
+                actionBtn.classList.add('btn-pumpkin');
+                actionBtnIcon.textContent = '⏸️';
+                actionBtnText.textContent = '暫停對位！';
+            }
+        }
+
+        actionBtn.addEventListener('click', togglePauseOrRetry);
+        gameCanvas.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            togglePauseOrRetry();
+        });
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && document.getElementById('cropModal').classList.contains('hidden')) {
+                e.preventDefault();
+                togglePauseOrRetry();
+            }
+        });
+
+        // 音效、模式與速度切換事件
+        const soundToggleBtn = document.getElementById('soundToggleBtn');
+        soundToggleBtn.addEventListener('click', () => {
+            sfx.enabled = !sfx.enabled;
+            soundToggleBtn.textContent = sfx.enabled ? '🔊' : '🔇';
+        });
+
+        document.getElementById('motionModeSelect').addEventListener('change', (e) => {
+            motionMode = e.target.value;
+            if (!isRunning) togglePauseOrRetry();
+        });
+
+        document.getElementById('speedSelect').addEventListener('change', (e) => {
+            speedMultiplier = parseFloat(e.target.value);
+        });
+
+        // ==================== 原始貓咪照片匯入與 100% 像素保真智慧去背器 ====================
+        const photoUpload = document.getElementById('photoUpload');
+        const cropModal = document.getElementById('cropModal');
+        const openCropModalBtn = document.getElementById('openCropModalBtn');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const editorCanvas = document.getElementById('editorCanvas');
+        const editorCtx = editorCanvas.getContext('2d', { willReadFrequently: true });
+        const toolStrengthSlider = document.getElementById('toolStrengthSlider');
+
+        // 保存使用者上傳的原始影像像素與當前 Alpha 遮罩
+        let uploadedRawCanvas = document.createElement('canvas');
+        uploadedRawCanvas.width = SPRITE_W;
+        uploadedRawCanvas.height = SPRITE_H;
+        let uploadedRawCtx = uploadedRawCanvas.getContext('2d', { willReadFrequently: true });
+
+        let workingMaskCanvas = document.createElement('canvas');
+        workingMaskCanvas.width = SPRITE_W;
+        workingMaskCanvas.height = SPRITE_H;
+        let workingMaskCtx = workingMaskCanvas.getContext('2d', { willReadFrequently: true });
+
+        let currentEditorTool = 'wand'; // 'wand' | 'eraser' | 'restore'
+        let isDrawingMask = false;
+
+        editorCanvas.width = SPRITE_W;
+        editorCanvas.height = SPRITE_H;
+
+        function updateToolButtonsUI() {
+            const wandBtn = document.getElementById('magicWandModeBtn');
+            const eraserBtn = document.getElementById('eraserModeBtn');
+            const restoreBtn = document.getElementById('restoreModeBtn');
+            [wandBtn, eraserBtn, restoreBtn].forEach(b => {
+                b.classList.remove('ring-2', 'ring-orange-400', 'bg-purple-600');
+                b.classList.add('bg-purple-800');
+            });
+            if (currentEditorTool === 'wand') wandBtn.classList.add('ring-2', 'ring-orange-400', 'bg-purple-600');
+            if (currentEditorTool === 'eraser') eraserBtn.classList.add('ring-2', 'ring-orange-400', 'bg-purple-600');
+            if (currentEditorTool === 'restore') restoreBtn.classList.add('ring-2', 'ring-orange-400', 'bg-purple-600');
+        }
+
+        function renderEditorPreview() {
+            editorCtx.clearRect(0, 0, SPRITE_W, SPRITE_H);
+            // 繪製棋盤格透明背景提示
+            const gridSize = 15;
+            for (let y = 0; y < SPRITE_H; y += gridSize) {
+                for (let x = 0; x < SPRITE_W; x += gridSize) {
+                    editorCtx.fillStyle = ((x / gridSize + y / gridSize) % 2 === 0) ? '#1e1633' : '#2a2045';
+                    editorCtx.fillRect(x, y, gridSize, gridSize);
+                }
+            }
+
+            // 合成原始照片與去背遮罩 (100% 不修改原始 RGB 像素，僅控制背景透明度)
+            const rawData = uploadedRawCtx.getImageData(0, 0, SPRITE_W, SPRITE_H);
+            const maskData = workingMaskCtx.getImageData(0, 0, SPRITE_W, SPRITE_H).data;
+            for (let i = 0; i < rawData.data.length; i += 4) {
+                rawData.data[i + 3] = maskData[i + 3];
+            }
+
+            const tempC = document.createElement('canvas');
+            tempC.width = SPRITE_W;
+            tempC.height = SPRITE_H;
+            tempC.getContext('2d').putImageData(rawData, 0, 0);
+            editorCtx.drawImage(tempC, 0, 0);
+        }
+
+        // 自動套用上傳照片的賓士貓輪廓遮罩 + 智慧邊緣背景過濾
+        function applySmartTuxedoTemplateMask() {
+            workingMaskCtx.clearRect(0, 0, SPRITE_W, SPRITE_H);
+            // 先使用預設精準賓士貓輪廓作為基礎遮罩，並自動向外擴張以涵蓋原圖貓咪全身
+            generateDefaultTuxedoCat(workingMaskCtx, SPRITE_W, SPRITE_H, true);
+
+            // 再針對照片四角與右側米白牆面、左側黑螢幕進行智慧 FloodFill 去背
+            floodFillRemoveBg(345, 20, 38);  // 右上米白牆壁
+            floodFillRemoveBg(345, 220, 36); // 右中米白牆壁
+            floodFillRemoveBg(200, 20, 38);  // 正上米白牆壁
+            renderEditorPreview();
+        }
+
+        // 魔術棒連通區域背景去背演算法 (Flood Fill)
+        function floodFillRemoveBg(startX, startY, tolerance) {
+            startX = Math.floor(startX);
+            startY = Math.floor(startY);
+            if (startX < 0 || startX >= SPRITE_W || startY < 0 || startY >= SPRITE_H) return;
+
+            const rawPixels = uploadedRawCtx.getImageData(0, 0, SPRITE_W, SPRITE_H).data;
+            const maskImg = workingMaskCtx.getImageData(0, 0, SPRITE_W, SPRITE_H);
+            const maskPixels = maskImg.data;
+
+            const startIdx = (startY * SPRITE_W + startX) * 4;
+            const r0 = rawPixels[startIdx];
+            const g0 = rawPixels[startIdx + 1];
+            const b0 = rawPixels[startIdx + 2];
+
+            const visited = new Uint8Array(SPRITE_W * SPRITE_H);
+            const stack = [[startX, startY]];
+            const tolSq = tolerance * tolerance * 3;
+
+            while (stack.length > 0) {
+                const [x, y] = stack.pop();
+                const idx = y * SPRITE_W + x;
+                if (visited[idx]) continue;
+                visited[idx] = 1;
+
+                const p = idx * 4;
+                const dr = rawPixels[p] - r0;
+                const dg = rawPixels[p + 1] - g0;
+                const db = rawPixels[p + 2] - b0;
+
+                if (dr * dr + dg * dg + db * db <= tolSq) {
+                    maskPixels[p + 3] = 0; // 將背景設為透明，完全不動前景貓咪像素
+                    if (x > 0) stack.push([x - 1, y]);
+                    if (x < SPRITE_W - 1) stack.push([x + 1, y]);
+                    if (y > 0) stack.push([x, y - 1]);
+                    if (y < SPRITE_H - 1) stack.push([x, y + 1]);
+                }
+            }
+            workingMaskCtx.putImageData(maskImg, 0, 0);
+        }
+
+        // 處理使用者上傳原始貓咪照片
+        photoUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                const img = new Image();
+                img.onload = () => {
+                    uploadedRawCtx.clearRect(0, 0, SPRITE_W, SPRITE_H);
+                    // 等比例置中繪製原始照片，絕不改變貓咪長寬比例
+                    const scale = Math.min(SPRITE_W / img.width, SPRITE_H / img.height);
+                    const dw = img.width * scale;
+                    const dh = img.height * scale;
+                    const dx = (SPRITE_W - dw) * 0.5;
+                    const dy = (SPRITE_H - dh) * 0.5;
+
+                    uploadedRawCtx.drawImage(img, dx, dy, dw, dh);
+
+                    // 預設先全圖保留並執行智慧四角牆壁去背，再開啟微調視窗供確認
+                    workingMaskCtx.fillStyle = '#ffffff';
+                    workingMaskCtx.fillRect(0, 0, SPRITE_W, SPRITE_H);
+                    // 清除上下左右留白邊界
+                    const rawAlpha = uploadedRawCtx.getImageData(0, 0, SPRITE_W, SPRITE_H).data;
+                    const mImg = workingMaskCtx.getImageData(0, 0, SPRITE_W, SPRITE_H);
+                    for (let i = 0; i < rawAlpha.length; i += 4) {
+                        if (rawAlpha[i + 3] < 10) mImg.data[i + 3] = 0;
+                    }
+                    workingMaskCtx.putImageData(mImg, 0, 0);
+
+                    // 自動去除照片右上與右側淺色牆壁背景
+                    floodFillRemoveBg(Math.floor(dx + dw - 8), Math.floor(dy + 8), 32);
+                    floodFillRemoveBg(Math.floor(dx + dw * 0.55), Math.floor(dy + 8), 32);
+                    floodFillRemoveBg(Math.floor(dx + dw - 8), Math.floor(dy + dh * 0.5), 30);
+
+                    renderEditorPreview();
+                    openCropModalBtn.classList.remove('hidden');
+                    cropModal.classList.remove('hidden');
+                    updateToolButtonsUI();
+                };
+                img.src = ev.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // 編輯器工具按鈕事件
+        document.getElementById('autoTemplateMaskBtn').addEventListener('click', () => {
+            applySmartTuxedoTemplateMask();
+        });
+        document.getElementById('magicWandModeBtn').addEventListener('click', () => {
+            currentEditorTool = 'wand';
+            updateToolButtonsUI();
+        });
+        document.getElementById('eraserModeBtn').addEventListener('click', () => {
+            currentEditorTool = 'eraser';
+            updateToolButtonsUI();
+        });
+        document.getElementById('restoreModeBtn').addEventListener('click', () => {
+            currentEditorTool = 'restore';
+            updateToolButtonsUI();
+        });
+        document.getElementById('resetMaskBtn').addEventListener('click', () => {
+            workingMaskCtx.fillStyle = '#ffffff';
+            workingMaskCtx.fillRect(0, 0, SPRITE_W, SPRITE_H);
+            renderEditorPreview();
+        });
+
+        function getEditorCoords(e) {
+            const rect = editorCanvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return {
+                x: ((clientX - rect.left) / rect.width) * SPRITE_W,
+                y: ((clientY - rect.top) / rect.height) * SPRITE_H
+            };
+        }
+
+        function applyBrushAt(x, y) {
+            const radius = parseInt(toolStrengthSlider.value, 10) * 0.5;
+            workingMaskCtx.save();
+            workingMaskCtx.beginPath();
+            workingMaskCtx.arc(x, y, radius, 0, Math.PI * 2);
+            if (currentEditorTool === 'eraser') {
+                workingMaskCtx.globalCompositeOperation = 'destination-out';
+                workingMaskCtx.fill();
+            } else if (currentEditorTool === 'restore') {
+                workingMaskCtx.globalCompositeOperation = 'source-over';
+                workingMaskCtx.fillStyle = '#ffffff';
+                workingMaskCtx.fill();
+            }
+            workingMaskCtx.restore();
+            renderEditorPreview();
+        }
+
+        editorCanvas.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            const pos = getEditorCoords(e);
+            if (currentEditorTool === 'wand') {
+                const tol = parseInt(toolStrengthSlider.value, 10);
+                floodFillRemoveBg(pos.x, pos.y, tol);
+                renderEditorPreview();
+            } else {
+                isDrawingMask = true;
+                applyBrushAt(pos.x, pos.y);
+            }
+        });
+
+        editorCanvas.addEventListener('pointermove', (e) => {
+            if (!isDrawingMask) return;
+            e.preventDefault();
+            const pos = getEditorCoords(e);
+            applyBrushAt(pos.x, pos.y);
+        });
+
+        window.addEventListener('pointerup', () => {
+            isDrawingMask = false;
+        });
+
+        openCropModalBtn.addEventListener('click', () => {
+            cropModal.classList.remove('hidden');
+        });
+        closeModalBtn.addEventListener('click', () => {
+            cropModal.classList.add('hidden');
+        });
+
+        // 套用去背後的原始貓咪照片至遊戲中
+        document.getElementById('applyCustomCatBtn').addEventListener('click', () => {
+            const rawData = uploadedRawCtx.getImageData(0, 0, SPRITE_W, SPRITE_H);
+            const maskData = workingMaskCtx.getImageData(0, 0, SPRITE_W, SPRITE_H).data;
+            for (let i = 0; i < rawData.data.length; i += 4) {
+                rawData.data[i + 3] = maskData[i + 3];
+            }
+            catSpriteCtx.clearRect(0, 0, SPRITE_W, SPRITE_H);
+            catSpriteCtx.putImageData(rawData, 0, 0);
+
+            // 自動根據這張原始照片的輪廓重新生成固定底圖與判定遮罩
+            buildSilhouetteAndEvalMaskFromCatSprite();
+
+            cropModal.classList.add('hidden');
+            if (!isRunning) togglePauseOrRetry();
+        });
+
+        // ==================== 初始化啟動遊戲 ====================
+        window.onload = function () {
+            resizeGameCanvas();
+            // 1. 生成預設高擬真賓士貓圖層
+            generateDefaultTuxedoCat(catSpriteCtx, SPRITE_W, SPRITE_H, false);
+            // 2. 根據貓咪圖層生成完全吻合的固定外部輪廓底圖與離屏比對遮罩
+            buildSilhouetteAndEvalMaskFromCatSprite();
+            // 3. 啟動平滑動畫迴圈
+            requestAnimationFrame(renderGameLoop);
+        };
+    </script>
+</body>
+</html>
